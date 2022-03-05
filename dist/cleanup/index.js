@@ -53627,7 +53627,7 @@ exports.saveCache = saveCache;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.STATE_GPG_PRIVATE_KEY_FINGERPRINT = exports.INPUT_JOB_STATUS = exports.INPUT_CACHE = exports.INPUT_DEFAULT_GPG_PASSPHRASE = exports.INPUT_DEFAULT_GPG_PRIVATE_KEY = exports.INPUT_GPG_PASSPHRASE = exports.INPUT_GPG_PRIVATE_KEY = exports.INPUT_OVERWRITE_SETTINGS = exports.INPUT_SETTINGS_PATH = exports.INPUT_SERVER_PASSWORD = exports.INPUT_SERVER_USERNAME = exports.INPUT_SERVER_ID = exports.INPUT_CHECK_LATEST = exports.INPUT_JDK_FILE = exports.INPUT_DISTRIBUTION = exports.INPUT_JAVA_PACKAGE = exports.INPUT_ARCHITECTURE = exports.INPUT_JAVA_VERSION = exports.MACOS_JAVA_CONTENT_POSTFIX = void 0;
+exports.STATE_GPG_PRIVATE_KEY_FINGERPRINT = exports.INPUT_JOB_STATUS = exports.INPUT_ADDITIONAL_CACHE_KEY_FRAGMENT = exports.INPUT_CACHE = exports.INPUT_DEFAULT_GPG_PASSPHRASE = exports.INPUT_DEFAULT_GPG_PRIVATE_KEY = exports.INPUT_GPG_PASSPHRASE = exports.INPUT_GPG_PRIVATE_KEY = exports.INPUT_OVERWRITE_SETTINGS = exports.INPUT_SETTINGS_PATH = exports.INPUT_SERVER_PASSWORD = exports.INPUT_SERVER_USERNAME = exports.INPUT_SERVER_ID = exports.INPUT_CHECK_LATEST = exports.INPUT_JDK_FILE = exports.INPUT_DISTRIBUTION = exports.INPUT_JAVA_PACKAGE = exports.INPUT_ARCHITECTURE = exports.INPUT_JAVA_VERSION = exports.MACOS_JAVA_CONTENT_POSTFIX = void 0;
 exports.MACOS_JAVA_CONTENT_POSTFIX = 'Contents/Home';
 exports.INPUT_JAVA_VERSION = 'java-version';
 exports.INPUT_ARCHITECTURE = 'architecture';
@@ -53645,6 +53645,7 @@ exports.INPUT_GPG_PASSPHRASE = 'gpg-passphrase';
 exports.INPUT_DEFAULT_GPG_PRIVATE_KEY = undefined;
 exports.INPUT_DEFAULT_GPG_PASSPHRASE = 'GPG_PASSPHRASE';
 exports.INPUT_CACHE = 'cache';
+exports.INPUT_ADDITIONAL_CACHE_KEY_FRAGMENT = 'additional-cache-key-fragment';
 exports.INPUT_JOB_STATUS = 'job-status';
 exports.STATE_GPG_PRIVATE_KEY_FINGERPRINT = 'gpg-private-key-fingerprint';
 
@@ -61871,24 +61872,31 @@ function findPackageManager(id) {
 }
 /**
  * A function that generates a cache key to use.
- * Format of the generated key will be "${{ platform }}-${{ id }}-${{ fileHash }}"".
+ * Format of the generated key will be "${{ platform }}-${{ id }}-${{ fileHash }}" or
+ * "${{ additionalFragment }}-${{ platform }}-${{ id }}-${{ fileHash }}" if the additional
+ * fragment is present.
  * If there is no file matched to {@link PackageManager.path}, the generated key ends with a dash (-).
  * @see {@link https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key|spec of cache key}
  */
-function computeCacheKey(packageManager) {
+function computeCacheKey(packageManager, additionalFragment) {
     return __awaiter(this, void 0, void 0, function* () {
         const hash = yield glob.hashFiles(packageManager.pattern.join('\n'));
-        return `${CACHE_KEY_PREFIX}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+        if (additionalFragment) {
+            return `${CACHE_KEY_PREFIX}-${additionalFragment}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+        }
+        else {
+            return `${CACHE_KEY_PREFIX}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+        }
     });
 }
 /**
  * Restore the dependency cache
  * @param id ID of the package manager, should be "maven" or "gradle"
  */
-function restore(id) {
+function restore(id, additionalFragment) {
     return __awaiter(this, void 0, void 0, function* () {
         const packageManager = findPackageManager(id);
-        const primaryKey = yield computeCacheKey(packageManager);
+        const primaryKey = yield computeCacheKey(packageManager, additionalFragment);
         core.debug(`primary key is ${primaryKey}`);
         core.saveState(STATE_CACHE_PRIMARY_KEY, primaryKey);
         if (primaryKey.endsWith('-')) {
