@@ -56,6 +56,9 @@ inputs:
   cache:
     description: 'Name of the build platform to cache dependencies. It can be "maven" or "gradle".'
     required: false
+  additional-cache-key-fragment:
+    description: 'An arbitrary cache key fragment string to be appended to the computed cache key.'
+    required: false
   job-status:
     description: 'Workaround to pass job status to post job step. This variable is not intended for manual setting'
     default: ${{ job.status }}

@@ -16,6 +16,7 @@ async function run() {
     const jdkFile = core.getInput(constants.INPUT_JDK_FILE);
     const cache = core.getInput(constants.INPUT_CACHE);
     const checkLatest = getBooleanInput(constants.INPUT_CHECK_LATEST, false);
+    const additionalCacheKeyFragment = core.getInput(constants.INPUT_ADDITIONAL_CACHE_KEY_FRAGMENT);
 
     const installerOptions: JavaInstallerOptions = {
       architecture,
@@ -43,7 +44,7 @@ async function run() {
 
     await auth.configureAuthentication();
     if (cache) {
-      await restore(cache);
+      await restore(cache, additionalCacheKeyFragment);
     }
   } catch (error) {
     core.setFailed(error.message);

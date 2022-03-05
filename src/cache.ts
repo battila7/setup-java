@@ -45,22 +45,29 @@ function findPackageManager(id: string): PackageManager {
 
 /**
  * A function that generates a cache key to use.
- * Format of the generated key will be "${{ platform }}-${{ id }}-${{ fileHash }}"".
+ * Format of the generated key will be "${{ platform }}-${{ id }}-${{ fileHash }}" or
+ * "${{ additionalFragment }}-${{ platform }}-${{ id }}-${{ fileHash }}" if the additional
+ * fragment is present.
  * If there is no file matched to {@link PackageManager.path}, the generated key ends with a dash (-).
  * @see {@link https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key|spec of cache key}
  */
-async function computeCacheKey(packageManager: PackageManager) {
+async function computeCacheKey(packageManager: PackageManager, additionalFragment?: string) {
   const hash = await glob.hashFiles(packageManager.pattern.join('\n'));
-  return `${CACHE_KEY_PREFIX}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+
+  if (additionalFragment) {
+    return `${CACHE_KEY_PREFIX}-${additionalFragment}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+  } else {
+    return `${CACHE_KEY_PREFIX}-${process.env['RUNNER_OS']}-${packageManager.id}-${hash}`;
+  }
 }
 
 /**
  * Restore the dependency cache
  * @param id ID of the package manager, should be "maven" or "gradle"
  */
-export async function restore(id: string) {
+export async function restore(id: string, additionalFragment?: string) {
   const packageManager = findPackageManager(id);
-  const primaryKey = await computeCacheKey(packageManager);
+  const primaryKey = await computeCacheKey(packageManager, additionalFragment);
 
   core.debug(`primary key is ${primaryKey}`);
   core.saveState(STATE_CACHE_PRIMARY_KEY, primaryKey);
